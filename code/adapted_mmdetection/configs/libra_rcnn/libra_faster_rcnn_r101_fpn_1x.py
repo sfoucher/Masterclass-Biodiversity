@@ -117,7 +117,8 @@ test_cfg = dict(
 )
 # dataset settings
 dataset_type = 'MyDataset'
-data_root = 'data/mammals/'
+data_root = '/content/general_dataset/'
+annot_root = '/content/general_dataset/groundtruth/json/sub_frames/'
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 
@@ -191,18 +192,18 @@ data = dict(
     workers_per_gpu=1,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/train_subframes_A_B_E_K_WH_WB.json',
-        img_prefix=data_root + 'train/',
+        ann_file=annot_root + 'train_subframes_A_B_E_K_WH_WB.json',
+        img_prefix=data_root + 'train_subframes/',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/val_subframes_A_B_E_K_WH_WB.json',
-        img_prefix=data_root + 'val/',
+        ann_file=annot_root + 'val_subframes_A_B_E_K_WH_WB.json',
+        img_prefix=data_root + 'train_subframes/',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/test_subframes_A_B_E_K_WH_WB.json',
-        img_prefix=data_root + 'test/',
+        ann_file=annot_root + 'test_subframes_A_B_E_K_WH_WB.json',
+        img_prefix=data_root + 'train_subframes/',
         pipeline=test_pipeline))
 evaluation = dict(interval=1, metric='bbox')
 # optimizer
