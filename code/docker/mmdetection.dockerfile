@@ -22,8 +22,10 @@ RUN conda clean --all
 RUN git clone https://github.com/open-mmlab/mmdetection.git /mmdetection -b v2.18.0
 WORKDIR /mmdetection
 # COPY jupyter_notebooks jupyter_notebooks/
-RUN pip install --src /mmddetection/jupyter_notebooks -e "git+https://github.com/sfoucher/Masterclass-Biodiversity.git@code-reorg#egg=MyPackageName&subdirectory=jupyter_notebooks" 
+RUN pip install --src /mmddetection -e "git+https://github.com/sfoucher/Masterclass-Biodiversity.git@code-reorg#egg=MyPackageName&subdirectory=jupyter_notebooks" 
 ENV FORCE_CUDA="1"
 RUN pip install -r requirements/build.txt
 RUN pip install --no-cache-dir -e .
+RUN pip install git+https://github.com/albu/albumentations
+RUN pip install pandas
 RUN conda install -y -c conda-forge jupyterlab

@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='MyPackageName',
+    name='jupyter_notebooks',
     version='1.0.0',
     url='https://github.com/mypackage.git',
     author='Author Name',
