@@ -1,4 +1,4 @@
-# Masterclass-Biodiversity
+# :elephant: Masterclass-Biodiversity
 
 This repository is related to the [AI for Biodiversity Masterclass](https://www.forclimate.ai/forum) as part of the 2021 edition of the AI for Climate Global Forum.
 
