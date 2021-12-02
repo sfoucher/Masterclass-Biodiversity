@@ -384,6 +384,298 @@ class Subframes(object):
                 sub_name =  results[line][3]
                 subframe.save(os.path.join(output_path, sub_name))
 
+class CustomDataset(Dataset):
+    
+    def __init__(self, img_root, ann_root, target_type='coco', transforms=None):
+
+        self.img_root = img_root
+        self.ann_root = ann_root
+        self.target_type = target_type
+        self.transforms = transforms
+
+        with open(ann_root) as json_file:
+            self.data = json.load(json_file)
+
+    def __getitem__(self, idx):
+
+        image_name = self.data['images'][idx]['file_name']
+        image_id = self.data['images'][idx]['id']
+
+        img_path = os.path.join(self.img_root,image_name)
+
+        img = Image.open(img_path).convert("RGB")
+
+        target = {}
+
+        boxes = []
+        area = []
+        labels = []
+
+        for ann in range(len(self.data['annotations'])):
+
+            if self.data['annotations'][ann]['image_id']== image_id:
+
+                if self.target_type == 'coco':
+                    boxes.append(self.data['annotations'][ann]['bbox'])
+
+                elif self.target_type == 'pascal':
+                    bndbox = self.data['annotations'][ann]['bbox']
+                    xmin = bndbox[0]
+                    ymin = bndbox[1]
+                    xmax = bndbox[0] + bndbox[2]
+                    ymax = bndbox[1] + bndbox[3]
+                    boxes.append([xmin,ymin,xmax,ymax])
+
+                labels.append(self.data['annotations'][ann]['category_id'])
+                area.append(self.data['annotations'][ann]['area'])
+
+        target["boxes"] = boxes
+        target["labels"] = labels
+        target["image_id"] = image_id
+        target["area"] = area
+
+        return img, target
+
+    def __len__(self):
+        return len(self.data['images'])
+    
+def subexport(img_root, ann_root, width, height, output_folder, 
+            overlap=False, strict=False ,pr_rate=50, 
+            object_only=True, export_ann=True):
+    '''
+    Function that exports sub-frames created on the basis of 
+    images loaded by a dataloader, and their associated new 
+    annotations.
+
+    This function uses the 'subframes' class for image processing.
+
+    Parameters
+    -----------
+    img_root : str
+        Path to images.
+
+    ann_root : str
+        Path to a coco-style dict (.json) containing annotations of 
+        the initial dataset.
+
+    width : int
+        Width of the sub-frames.
+    
+    height : int
+        Height of the sub-frames.
+    
+    output_folder : str
+        Output folder path where to save sub-frames and new annotations.
+    
+    overlap : bool, optional
+        Set to True to get an overlap of 50% between 
+        2 sub-frames (default: False)
+    
+    strict : bool, optional
+        Set to True get sub-frames of exact same size 
+        (e.g width x height) (default: False)
+
+    pr_rate : int, optional
+        Console print rate of image processing progress.
+        Default : 50
+    
+    object_only : bool, optional
+        A flag used to choose between :
+            - saving all the sub-frames of the entire image
+            (set to False)
+            - saving only sub-frames with objects
+            (set to True, default)
+
+    export_ann : bool, optional
+        A flag used to choose between :
+            - not exporting annotations with sub-frames
+            (set to False)
+            - exporting annotations with sub-frames
+            (set to True, default
+   
+    Returns
+    --------
+    list
+
+    a coco-type JSON file named 'coco_subframes.json'
+    is created inside the subframes' folder
+    
+    '''
+
+    # Get annos
+    with open(ann_root) as json_file:
+        coco_dic = json.load(json_file)
+
+    # Dataset
+    dataset = CustomDataset(img_root, ann_root, target_type='coco')
+
+    # Sampler
+    sampler = torch.utils.data.SequentialSampler(dataset)
+
+    # Collate_fn
+    def collate_fn(batch):
+        return tuple(zip(*batch))
+
+    # Dataloader
+    dataloader = torch.utils.data.DataLoader(dataset, 
+                                            batch_size=1,
+                                            sampler=sampler,
+                                            num_workers=0,
+                                            collate_fn=collate_fn)
+
+    # Header
+    all_results = [['filename','boxes','labels','HxW']]
+
+    # intial time
+    t_i = time.time()
+
+    for i, (image, target) in enumerate(dataloader):
+
+        if i == 0:
+            print(' ')
+            print('-'*38)
+            print('Sub-frames creation started...')
+            print('-'*38)
+
+        elif i == len(dataloader)-1:
+            print('-'*38)
+            print('Sub-frames creation finished!')
+            print('-'*38)
+
+        image = image[0]
+        target = target[0]
+
+        # image id and name
+        img_id = int(target['image_id'])
+        for im in coco_dic['images']:
+            if im['id'] == img_id:
+                img_name = im['file_name']
+
+        # Get subframes
+        sub_frames = Subframes(img_name, image, target, width, height, strict=strict)
+        results = sub_frames.getlist(overlap=overlap)
+
+        # Save
+        sub_frames.save(results, output_path=output_folder, object_only=object_only)
+        
+        if object_only is True:
+            for b in range(len(results)):
+                if results[b][1]:
+                    h = np.shape(results[b][0])[0]
+                    w = np.shape(results[b][0])[1]
+                    all_results.append([results[b][3],results[b][1],results[b][2],[h,w]])
+
+        elif object_only is not True:
+            for b in range(len(results)):
+                h = np.shape(results[b][0])[0]
+                w = np.shape(results[b][0])[1]
+                all_results.append([results[b][3],results[b][1],results[b][2],[h,w]])
+
+        if i % pr_rate == 0:
+            print('Image [{:<4}/{:<4}] done.'.format(i, len(coco_dic['images'])))
+
+    # final time
+    t_f = time.time()
+
+    print('Elapsed time : {}'.format(str(datetime.timedelta(seconds=int(np.round(t_f-t_i))))))
+    print('-'*38)
+    print(' ')
+
+    return_var = np.array(all_results)[:,:3].tolist()
+
+    # Export new annos
+    if export_ann is True:
+        file_name = 'coco_subframes.json'
+        output_f = os.path.join(output_folder, file_name)
+
+        # Initializations
+        images = []
+        annotations = []
+        id_img = 0
+        id_ann = 0
+
+        for i in range(1,len(all_results)):
+            
+            id_img += 1
+
+            h = all_results[i][3][0]
+            w = all_results[i][3][1]
+
+            dico_img = {
+                "license": 1,
+                "file_name": all_results[i][0],
+                "coco_url": "None",
+                "height": h,
+                "width": w,
+                "date_captured": "None",
+                "flickr_url": "None",
+                "id": id_img
+            }
+
+            images.append(dico_img)
+
+            # Bounding boxes
+            if all_results[i][1]:
+                
+                bndboxes = all_results[i][1]
+
+                for b in range(len(bndboxes)):
+
+                    id_ann += 1
+
+                    bndbox = bndboxes[b]
+                    
+                    # Convert 
+                    x_min = int(np.round(bndbox[0]))
+                    y_min = int(np.round(bndbox[1]))
+                    box_w = int(np.round(bndbox[2]))
+                    box_h = int(np.round(bndbox[3]))
+
+                    coco_box = [x_min,y_min,box_w,box_h]
+
+                    # Area
+                    area = box_w*box_h
+
+                    # Label
+                    label_id = all_results[i][2][b]
+
+                    # Store the values into a dict
+                    dico_ann = {
+                            "segmentation": [[]],
+                            "area": area,
+                            "iscrowd": 0,
+                            "image_id": id_img,
+                            "bbox": coco_box,
+                            "category_id": label_id,
+                            "id": id_ann
+                    }
+
+                    annotations.append(dico_ann)
+        
+        # Update info
+        coco_dic['info']['date_created'] = str(date.today())
+        coco_dic['info']['year'] = str(date.today().year)
+
+        new_dic = {
+            'info': coco_dic['info'],
+            'licenses': coco_dic['licenses'],
+            'images': images,
+            'annotations': annotations,
+            'categories': coco_dic['categories']
+        }
+
+        # Export json file
+        with open(output_f, 'w') as outputfile:
+            json.dump(new_dic, outputfile)
+
+        if os.path.isfile(output_f) is True:
+            print('File \'{}\' correctly saved at \'{}\'.'.format(file_name, output_folder))
+            print(' ')
+        else:
+            print('An error occurs, file \'{}\' not found at \'{}\'.'.format(file_name, output_folder))
+
+    return return_var
+
 def softnms(preds, Nt, tresh, method='linear', sigma=0.5):
     '''
     Function for applying the Non-Maximum Suppression 
