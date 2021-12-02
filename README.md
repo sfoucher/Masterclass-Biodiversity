@@ -7,5 +7,5 @@ Note that it is still under construction and will ultimately compile notebooks r
 Delplanque, A., Foucher, S., Lejeune, P., Linchant, J. & Théau, J. (2021). Multispecies detection and identification of African mammals in aerial imagery using convolutional neural networks. Remote Sensing in Ecology and Conservation. https://doi.org/10.1002/rse2.234
 
 * Accompanying video:
-https://youtu.be/NH-IQRBL5j8
+https://www.youtube.com/watch?v=NH-IQRBL5j8&t=3230s&ab_channel=CMinds_co
 
