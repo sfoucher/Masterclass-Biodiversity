@@ -22,10 +22,14 @@ RUN conda clean --all
 RUN git clone https://github.com/open-mmlab/mmdetection.git /mmdetection -b v2.18.0
 WORKDIR /mmdetection
 # COPY jupyter_notebooks jupyter_notebooks/
-RUN pip install --src /mmddetection -e "git+https://github.com/sfoucher/Masterclass-Biodiversity.git@code-reorg#egg=MyPackageName&subdirectory=jupyter_notebooks" 
 ENV FORCE_CUDA="1"
 RUN pip install -r requirements/build.txt
 RUN pip install --no-cache-dir -e .
-RUN pip install git+https://github.com/albu/albumentations
-RUN pip install pandas
+RUN pwd
+RUN pip install git+https://github.com/albu/albumentations@1.0.0
+RUN pip install pandas wandb
 RUN conda install -y -c conda-forge jupyterlab
+ENV WANDB_API_KEY "24a08e31b27fcc39f4035d8c052169073309d3dd"
+#RUN git clone https://github.com/sfoucher/Masterclass-Biodiversity.git /mmdetection/notebooks -b code-reorg 
+#RUN pip install --no-cache-dir --src /mmdetection -v -e "git+https://github.com/sfoucher/Masterclass-Biodiversity.git@code-reorg#egg=MyPackageName&subdirectory=jupyter_notebooks" 
+#RUN rm -rf /mmdetection/notebooks/code/adapted_mmdetection/mmdetection-1.0.0
