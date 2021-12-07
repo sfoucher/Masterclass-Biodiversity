@@ -1,12 +1,13 @@
-_base_ = '/mmdetection/configs/libra_rcnn/libra_faster_rcnn_r101_fpn_1x_coco.py'
+_base_ = '/misc/home/visi/fouchesa/projets/xview3/mmdetection-xview3/configs/libra_rcnn/libra_faster_rcnn_r101_fpn_1x_coco.py'
 model = dict(
     roi_head = dict(
         bbox_head=dict(num_classes=6)))
 
 dataset_type = 'MyDataset'
-data_root = '/general_dataset/'
-annot_root = '/general_dataset/groundtruth/json/sub_frames/'
-tile_size= (500,500)
+data_root = '/misc/data23-bs/DACCS/earth_observation/ForumAI/sub_frames/'
+annot_root = data_root
+
+tile_size= (1000,1000)
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 albu_train_transforms = [
@@ -97,25 +98,25 @@ test_pipeline = [
         ])
 ]
 data = dict(
-    samples_per_gpu=1,
-    workers_per_gpu=2,
+    samples_per_gpu=2,
+    workers_per_gpu=8,
     train=dict(
         type='MyDataset',
         ann_file=
-        '/general_dataset/sub_frames_500/train/coco_subframes.json',
-        img_prefix='/general_dataset/sub_frames_500/train',
+        annot_root + 'train/coco_subframes.json',
+        img_prefix=data_root + 'train',
         pipeline = train_pipeline),
     val=dict(
         type='MyDataset',
         ann_file=
-        '/general_dataset/sub_frames_500/val/coco_subframes.json',
-        img_prefix='/general_dataset/sub_frames_500/val',
+        annot_root + 'val/coco_subframes.json',
+        img_prefix=data_root + 'val',
         pipeline= val_pipeline),
     test=dict(
         type='MyDataset',
         ann_file=
-        '/general_dataset/sub_frames_500/test/coco_subframes.json',
-        img_prefix='/general_dataset/sub_frames_500/test',
+        annot_root + 'test/coco_subframes.json',
+        img_prefix=data_root + 'test',
         pipeline = test_pipeline))
 evaluation = dict(interval=1, metric='bbox')
 optimizer = dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.001)
@@ -138,6 +139,8 @@ workflow = [('train', 1)]
 model_name= 'libra-cnn'
 wnb_username= 'sfoucher'
 #log_config = dict(interval=50,    hooks=[dict(type='TextLoggerHook'), dict(type='WandbLoggerHook')])
+
+
 log_config = dict(
     interval=50,
     hooks=[dict(type='TextLoggerHook'),
@@ -145,6 +148,7 @@ log_config = dict(
                 init_kwargs=dict(
                     project='fine-tuning-libra-cnn',
                     name=f'normalized {model_name}-workers{data["workers_per_gpu"]}samples/GPU{data["samples_per_gpu"]} lr {optimizer["lr"]}',
+                    config={"learning_rate": optimizer["lr"], "architecture": "libra-cnn"},
                     entity=wnb_username)
                 )]
 )
