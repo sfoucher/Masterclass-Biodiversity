@@ -19,6 +19,7 @@ import collections
 import pandas as pd
 import shutil
 
+
 class Subframes(object):
     """
     Class allowing the visualisation and the cropping of a labeled image (bbox) into sub-frames whose dimensions are specified by the user.
