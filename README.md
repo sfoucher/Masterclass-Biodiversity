@@ -8,6 +8,3 @@ Delplanque, A., Foucher, S., Lejeune, P., Linchant, J. & Théau, J. (2021). Mult
 
 * Accompanying video:
 https://www.youtube.com/watch?v=NH-IQRBL5j8&t=3230s&ab_channel=CMinds_co
-
-## TEST
-# This is a test to see if I can localy commit and push to GitHub.
